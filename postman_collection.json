@@ -1,0 +1,421 @@
+{
+  "info": {
+    "name": "Doctor & Patient Management API",
+    "description": "Postman collection for the FastAPI doctor/patient backend. Import, then run the Auth > Register/Logins folder first: the login scripts fill admin_token, doctor_token, doctor_id and patient_id automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "admin_token", "value": "" },
+    { "key": "doctor_token", "value": "" },
+    { "key": "doctor_id", "value": "1" },
+    { "key": "second_doctor_id", "value": "" },
+    { "key": "patient_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Service Info",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{base_url}}/" }
+        },
+        {
+          "name": "Health Check",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{base_url}}/health" }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body).to.not.have.property('hashed_password');",
+                  "pm.test('token stored for later admin requests', () => {",
+                  "  const login = pm.sendRequest({",
+                  "    url: pm.variables.replaceIn('{{base_url}}/auth/login'),",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ email: body.email, password: 'admin123' }) }",
+                  "  });",
+                  "  pm.expect(login.code).to.eql(200);",
+                  "  pm.collectionVariables.set('admin_token', login.json().access_token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": "{{base_url}}/auth/register",
+            "description": "Registers the admin account. The test script logs in and stores admin_token."
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('admin_token', body.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "Stores the returned JWT in the admin_token collection variable."
+          }
+        },
+        {
+          "name": "Register Doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Arun Kumar\",\n  \"email\": \"arun@gmail.com\",\n  \"password\": \"doctor123\",\n  \"role\": \"doctor\"\n}"
+            },
+            "url": "{{base_url}}/auth/register",
+            "description": "Registers a doctor login. This links the account to the doctor record with the same email."
+          }
+        },
+        {
+          "name": "Login Doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('doctor_token', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"arun@gmail.com\",\n  \"password\": \"doctor123\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "Stores the doctor JWT in the doctor_token collection variable."
+          }
+        },
+        {
+          "name": "Register Second Doctor",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Meera Singh\",\n  \"email\": \"meera@gmail.com\",\n  \"password\": \"doctor123\",\n  \"role\": \"doctor\"\n}"
+            },
+            "url": "{{base_url}}/auth/register",
+            "description": "Second doctor used to verify cross-doctor access is blocked."
+          }
+        },
+        {
+          "name": "Current User (Me)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Doctors",
+      "item": [
+        {
+          "name": "Create Doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('doctor_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Arun Kumar\",\n  \"specialization\": \"Cardiology\",\n  \"email\": \"arun@gmail.com\"\n}"
+            },
+            "url": "{{base_url}}/doctors",
+            "description": "Admin only. The test script stores the new id in doctor_id."
+          }
+        },
+        {
+          "name": "Create Second Doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('second_doctor_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Meera Singh\",\n  \"specialization\": \"Neurology\",\n  \"email\": \"meera@gmail.com\"\n}"
+            },
+            "url": "{{base_url}}/doctors"
+          }
+        },
+        {
+          "name": "Get Doctors (paged)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/doctors?page=1&page_size=10"
+          }
+        },
+        {
+          "name": "Get Doctors Filtered By Specialization",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/doctors?specialization=Cardiology"
+          }
+        },
+        {
+          "name": "Get Doctors Including Inactive",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/doctors?include_inactive=true"
+          }
+        },
+        {
+          "name": "Get Doctor",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/doctors/{{doctor_id}}"
+          }
+        },
+        {
+          "name": "Update Doctor",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Arun Kumar Sr.\",\n  \"specialization\": \"Cardiothoracic Surgery\"\n}"
+            },
+            "url": "{{base_url}}/doctors/{{doctor_id}}",
+            "description": "Admin only partial update."
+          }
+        },
+        {
+          "name": "Soft Delete Doctor",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "DELETE",
+            "url": "{{base_url}}/doctors/{{second_doctor_id}}",
+            "description": "Sets is_active=false; the row is kept. Run this last."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "Create Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('patient_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul\",\n  \"age\": 28,\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": "{{base_url}}/patients",
+            "description": "Admin only. The test script stores the new id in patient_id."
+          }
+        },
+        {
+          "name": "Create Patient (invalid age -> 422)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bad\",\n  \"age\": 0,\n  \"phone\": \"9876543210\"\n}" },
+            "url": "{{base_url}}/patients"
+          }
+        },
+        {
+          "name": "Get Patients (admin sees all)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/patients?page=1&page_size=10"
+          }
+        },
+        {
+          "name": "Get Patients (doctor sees only assigned)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{doctor_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/patients"
+          }
+        },
+        {
+          "name": "Get Patient",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/patients/{{patient_id}}"
+          }
+        },
+        {
+          "name": "Update Patient",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"age\": 29\n}" },
+            "url": "{{base_url}}/patients/{{patient_id}}"
+          }
+        },
+        {
+          "name": "Delete Patient",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "DELETE",
+            "url": "{{base_url}}/patients/{{patient_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assignments",
+      "item": [
+        {
+          "name": "Assign Patient To Doctor",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "POST",
+            "url": "{{base_url}}/doctors/{{doctor_id}}/patients/{{patient_id}}",
+            "description": "Admin only. Repeat to see 409 Conflict."
+          }
+        },
+        {
+          "name": "Assign Duplicate (409)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "POST",
+            "url": "{{base_url}}/doctors/{{doctor_id}}/patients/{{patient_id}}"
+          }
+        },
+        {
+          "name": "Get Doctor Patients (admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/doctors/{{doctor_id}}/patients"
+          }
+        },
+        {
+          "name": "Get Doctor Patients (doctor own)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{doctor_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/doctors/{{doctor_id}}/patients"
+          }
+        },
+        {
+          "name": "Get Doctor Patients (other doctor -> 403)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{doctor_token}}" }] },
+            "method": "GET",
+            "url": "{{base_url}}/doctors/{{second_doctor_id}}/patients",
+            "description": "Expected 403 Forbidden."
+          }
+        },
+        {
+          "name": "Unassign Patient",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}" }] },
+            "method": "DELETE",
+            "url": "{{base_url}}/doctors/{{doctor_id}}/patients/{{patient_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
